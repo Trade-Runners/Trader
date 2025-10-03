@@ -38,6 +38,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tests.test_submission_validator import SubmissionValidator
 
+test_path = "data/processed/test_from_train.csv"  # тестовый файл
+
 
 @click.command()
 @click.option(
@@ -62,7 +64,9 @@ def main(submission_file: Optional[str]) -> int:
     print("=" * 50)
 
     try:
-        validator = SubmissionValidator(submission_file)
+        validator = SubmissionValidator(
+            test_path=test_path, submission_path=submission_file
+        )
         results = validator.run_all_validations()
     except FileNotFoundError as e:
         click.echo(f"❌ Ошибка: Файл test.csv не найден: {e}", err=True)

@@ -25,6 +25,9 @@ from tqdm import tqdm  # type: ignore[import-untyped]
 
 from src.app.core.llm import call_llm
 
+current_dir = Path(__file__).parent
+test_file_default = current_dir.parent / "data" / "processed" / "test.csv"
+
 
 def calculate_cost(usage: dict, model: str) -> float:
     """Рассчитать стоимость запроса на основе usage и модели"""
@@ -51,13 +54,21 @@ def calculate_cost(usage: dict, model: str) -> float:
     return prompt_cost + completion_cost
 
 
-def load_train_examples(train_file: Path, num_examples: int = 10) -> list[dict[str, str]]:
+def load_train_examples(
+    train_file: Path, num_examples: int = 10
+) -> list[dict[str, str]]:
     """Загрузить примеры из train.csv для few-shot learning"""
     examples = []
     with open(train_file, encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=";")
         for row in reader:
-            examples.append({"question": row["question"], "type": row["type"], "request": row["request"]})
+            examples.append(
+                {
+                    "question": row["question"],
+                    "type": row["type"],
+                    "request": row["request"],
+                }
+            )
 
     # Берем разнообразные примеры (GET, POST, DELETE)
     get_examples = [e for e in examples if e["type"] == "GET"]
@@ -66,7 +77,9 @@ def load_train_examples(train_file: Path, num_examples: int = 10) -> list[dict[s
 
     # Формируем сбалансированный набор
     selected = []
-    selected.extend(random.sample(get_examples, min(num_examples - 3, len(get_examples))))
+    selected.extend(
+        random.sample(get_examples, min(num_examples - 3, len(get_examples)))
+    )
     selected.extend(random.sample(post_examples, min(2, len(post_examples))))
     selected.extend(random.sample(delete_examples, min(1, len(delete_examples))))
 
@@ -148,7 +161,9 @@ def parse_llm_response(response: str) -> tuple[str, str]:
     return method, request
 
 
-def generate_api_call(question: str, examples: list[dict[str, str]], model: str) -> tuple[dict[str, str], float]:
+def generate_api_call(
+    question: str, examples: list[dict[str, str]], model: str
+) -> tuple[dict[str, str], float]:
     """Сгенерировать API запрос для вопроса
 
     Returns:
@@ -171,7 +186,9 @@ def generate_api_call(question: str, examples: list[dict[str, str]], model: str)
         return {"type": method, "request": request}, cost
 
     except Exception as e:
-        click.echo(f"⚠️  Ошибка при генерации для вопроса '{question[:50]}...': {e}", err=True)
+        click.echo(
+            f"⚠️  Ошибка при генерации для вопроса '{question[:50]}...': {e}", err=True
+        )
         # Возвращаем fallback
         return {"type": "GET", "request": "/v1/assets"}, 0.0
 
@@ -195,8 +212,12 @@ def generate_api_call(question: str, examples: list[dict[str, str]], model: str)
     default="data/processed/submission.csv",
     help="Путь к submission.csv",
 )
-@click.option("--num-examples", type=int, default=10, help="Количество примеров для few-shot")
-def main(test_file: Path, train_file: Path, output_file: Path, num_examples: int) -> None:
+@click.option(
+    "--num-examples", type=int, default=10, help="Количество примеров для few-shot"
+)
+def main(
+    test_file: Path, train_file: Path, output_file: Path, num_examples: int
+) -> None:
     """Генерация submission.csv для хакатона"""
     from src.app.core.config import get_settings
 
@@ -214,6 +235,7 @@ def main(test_file: Path, train_file: Path, output_file: Path, num_examples: int
 
     # Читаем тестовый набор
     click.echo(f"📖 Чтение {test_file}...")
+    test_file = current_dir.parent / test_file
     test_questions = []
     with open(test_file, encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=";")
@@ -232,7 +254,13 @@ def main(test_file: Path, train_file: Path, output_file: Path, num_examples: int
     for item in progress_bar:
         api_call, cost = generate_api_call(item["question"], examples, model)
         total_cost += cost
-        results.append({"uid": item["uid"], "type": api_call["type"], "request": api_call["request"]})
+        results.append(
+            {
+                "uid": item["uid"],
+                "type": api_call["type"],
+                "request": api_call["request"],
+            }
+        )
 
         # Обновляем postfix с текущей стоимостью
         progress_bar.set_postfix({"cost": f"${total_cost:.4f}"})
