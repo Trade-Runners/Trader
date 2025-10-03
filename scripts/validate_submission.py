@@ -29,6 +29,13 @@
 from typing import Optional
 
 import click
+import sys
+import os
+from pathlib import Path
+
+# Добавляем корневую директорию проекта в sys.path для корректного импорта
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from tests.test_submission_validator import SubmissionValidator
 
 
@@ -44,6 +51,8 @@ def main(submission_file: Optional[str]) -> int:
     """Валидировать submission файл для хакатона"""
 
     print("🚀 Запуск валидации submission файла...")
+    current_dir = Path(__file__).parent
+    submission_file = current_dir.parent / "data" / "processed" / "submission.csv"
 
     if submission_file:
         print(f"📁 Проверяемый файл: {submission_file}")
